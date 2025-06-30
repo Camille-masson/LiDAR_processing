@@ -26,8 +26,6 @@ source("config.R")
 
 
 
-
-
 #### 1. DOWNLOAD LAZ files ####
 #-----------------------------#
 if (TRUE){
