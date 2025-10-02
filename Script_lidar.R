@@ -13,8 +13,8 @@ library(terra)
 
 
 ## Variables :
-site <- "Grande-Cabane" # Study site (name used for organizing cases and files)
-RES    <- 5  # resolution of outputs in meters
+site <- "Nyer" # Study site (name used for organizing cases and files)
+RES    <- 1  # resolution of outputs in meters
 
 
 ## Config : 
@@ -70,6 +70,7 @@ if (TRUE){
   
   
 
+  
   }
   
 #### 2.  COMPUTE Digital Terrain Model (DTM) ####
@@ -188,11 +189,7 @@ if (TRUE){
   
  }
   
-  
-
-
-
-#### 3.  Création de l’indice DAH ####
+#### 4.  Création de l’indice DAH ####
 #----------------------------------#
 if (TRUE){
   
@@ -241,7 +238,7 @@ if (TRUE){
   
   
   
-#### 4.  COMPUTE Canopy Height Model (CHM) ####
+#### 5.  COMPUTE Canopy Height Model (CHM) ####
 #---------------------------------------------#
 if (TRUE){
   
@@ -294,6 +291,7 @@ if (TRUE){
   
   
   
+}
   
   
   
@@ -310,157 +308,3 @@ if (TRUE){
   
   
   
-  
-  
-  
-# 4. COMPUTE Canopy Height Model (CHM) ----
-
-DIR.CHM  <- "D:/DATA_ORLU/CHM/"  # set your CHM directory
-NAM.CHM  <- "CHM_5M_ORLU.tif"    # set your CHM output filename
-
-setwd(DIR.LAZ)
-LFlaz  <- list.files(pattern=".laz")
-ctg    <- lidR::readLAScatalog(LFlaz, filter = "-drop_class 1 -drop_extended_class 65 -drop_return 0")
-
-# Normalize Z (remove ground z) and rewrite LAZ files in a CHM directory
-opt_output_files(ctg)    <-  paste0(DIR.CHM, "{*}_norm")
-opt_laz_compression(ctg) <-  TRUE
-ctg_norm                 <-  lidR::normalize_height(ctg, tin()) 
-# open a plot window with the status of each scene 
-# tin is a Spatial Interpolation Algorithm
-
-# Load normalized LAZ files
-setwd(DIR.CHM)
-LIST     <- list.files(full.names=T)
-ctg_norm <- lidR::readLAScatalog(LIST, filter = "-drop_class 1 -drop_extended_class 65 -drop_return 0")
-
-# Produce Canopy Height Model from ctg_norm at resolution RES
-RES <- 5  # in meters
-chm_norm <- lidR::rasterize_canopy(ctg_norm, RES, p2r())
-
-terra::writeRaster(chm_norm,NAM.CHM)
-
-# Graphical checking
-terra::plot(terra::rast(NAM.CHM),range=c(0,40))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## EN PLUS : 
-
-# Processing IGN Lidar data
-# version 1
-# Ph. Choler (parts 1,2) / A. Bayle (parts 3,4)
-
-rm(list=ls())
-library(lidR)
-library(terra)
-
-# 1. FIND URL PATHs of LAZ files ----
-# option 1. find the URL corresponding to a specif point ----
-# achtung : might generate errors for near-frontier areas, please check/improve !
-
-# data frame of 50km x 50 km tiles/zone coordinates
-# only for the Alps !
-XZonseq      <- seq(886,986,50)
-YZonseq      <- seq(6283,6533,50)
-df.Zon       <- expand.grid(XZonseq,YZonseq)
-tmp          <- expand.grid(LETTERS[16:18],rev(LETTERS[11:16]))
-df.Zon$DALLE <- paste0(tmp[,1],tmp[,2])
-
-# example using decimal degrees
-LON  = 6.143; LAT = 45.464 # Etable in North of Belledonne
-tmp         <- terra::vect(cbind(x=LON,y=LAT),crs="epsg:4326")
-tmp1        <- terra::project(tmp,"epsg:2154")
-
-Xll         <- floor(crds(tmp1)[,1]/1000)
-Yll         <- ceiling(crds(tmp1)[,2]/1000)
-
-DALLE       <- paste0(paste0("0",Xll),"_",Yll)
-PREFI1      <- "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/"
-
-ID.Zon      <- which((Xll-df.Zon[,1])==min((Xll-df.Zon[,1])[which((Xll-df.Zon[,1])>=0)]) & (Yll-df.Zon[,2])==min((Yll-df.Zon[,2])[which((Yll-df.Zon[,2])>=0)])) # just ugly...
-
-ZONE        <- df.Zon[ID.Zon,"DALLE"]
-PREFI2      <- "/LHD_FXX_"
-SUFFI       <- ifelse(length(grep(substr(ZONE,2,2),c("J","K","L")))==1,
-                      "_PTS_C_LAMB93_IGN69.copc.laz",
-                      "_PTS_O_LAMB93_IGN69.copc.laz")
-# use C for the rows xJ, xK and xL   
-# use O for the rows xM, xN and xO
-# there are unexplained exceptions to that rule...
-
-tmpFILENAME <- paste0(PREFI1,ZONE,PREFI2,DALLE,SUFFI)
-
-
-
-
-
-
-
-
-
-
-# option 2. download the URL list of selected files ----
-# select 1km2 areas at https://diffusion-lidarhd.ign.fr/
-# -> liste_dalle.txt
-
-
-
